@@ -17,10 +17,11 @@ let player = {
 
 let cameraX = 0;
 let cameraY = 0;
-
+let gameWidth = 2000;
+let gameHeight = 2000;
 
 function setup() {
-    canvas = createCanvas(2000, 2000);
+    canvas = createCanvas(gameWidth, gameHeight);
     // Listen for initPlayer event from the server
     socket = io(); // Connect to server
     socket.on("connect", () => {
@@ -28,25 +29,32 @@ function setup() {
 
         socket.on("initPlayer", (playerData) => {
             player = playerData; // Initialize the player object
+            player.cameraX = player.x;
+            player.cameraY = player.y;
+            player.cameraWidth = player.size; // Set initial camera width
+            player.cameraHeight = player.size;
+
+            updateCamera(player.x, player.y);
             players.push(playerData); // Store received player data
         });
 
         socket.on("updatePlayers", (updatedPlayers) => {
             // Find the player object corresponding to the client's socket ID
             players = updatedPlayers;
-
-            // Find the current player's data
             const currentPlayer = players.find(player => player.id === socket.id);
-        
+
             if (currentPlayer) {
-                // Call the updateCamera function with the current player's position
-                updateCamera(currentPlayer.x, currentPlayer.y, currentPlayer.size);
+                // Update the camera position based on the current player's position
+                updateCamera(currentPlayer.x, currentPlayer.y);
+
+                cameraX = currentPlayer.cameraX - canvas.width / 2;
+                cameraY = currentPlayer.cameraY - canvas.height / 2;
             }
         });
         socket.on("initCells", (initialCells) => {
             cells = initialCells;
         });
-        
+
         // Listen for new cell data from the server
         socket.on("newCell", (newCell) => {
             cells.push(newCell);
@@ -73,7 +81,7 @@ function setup() {
             movementInterval = interval;
         });
 
-        
+
         // Show the prompt to enter the player's name
         showNamePrompt();
 
@@ -87,18 +95,21 @@ function setup() {
     });
 }
 
-function handleMouseMoved(event) {
-    const mouseX = event.clientX - canvas.elt.getBoundingClientRect().left;
-    const mouseY = event.clientY - canvas.elt.getBoundingClientRect().top;
+function handleMouseMoved() {
+    const currentPlayer = players.find(player => player.id === socket.id);
 
+    if (currentPlayer) {
+        const targetX = mouseX + cameraX;
+        const targetY = mouseY + cameraY;
 
-    // Adjust mouse position based on camera's position
-    const adjustedMouseX = mouseX + cameraX;
-    const adjustedMouseY = mouseY + cameraY;
+        currentPlayer.x = targetX;
+        currentPlayer.y = targetY;
 
-    // Emit adjusted mouse position as player movement data to the server
-    socket.emit("playerMove", { x: adjustedMouseX, y: adjustedMouseY });
+        socket.emit("playerMove", { x: currentPlayer.x, y: currentPlayer.y });
+    }
 }
+
+
 
 function showNamePrompt() {
     // Display the name prompt
@@ -118,10 +129,10 @@ function startGame() {
 
 }
 
-function updateCamera(playerX, playerY,playerSize) {
+function updateCamera(playerX, playerY) {
     // Update the camera's position based on the player's position
-    cameraX = playerX - canvas.width / 2+ playerSize / 2;
-    cameraY = playerY - canvas.height / 2+ playerSize / 2;
+    cameraX = playerX - canvas.width / 2;
+    cameraY = playerY - canvas.height / 2;
 
     // Clamp camera position to stay within the game boundaries
     cameraX = constrain(cameraX, 0, gameWidth - canvas.width);
@@ -131,6 +142,16 @@ function updateCamera(playerX, playerY,playerSize) {
 function draw() {
     // Clear the canvas
     background(255);
+    const currentPlayer = players.find(player => player.id === socket.id);
+    if (currentPlayer) {
+        // Update the camera position based on the current player's position
+        currentPlayer.cameraX = currentPlayer.x;
+        currentPlayer.cameraY = currentPlayer.y;
+
+        // Inside the camera position update block
+        cameraX = currentPlayer.cameraX - canvas.width / 2;
+        cameraY = currentPlayer.cameraY - canvas.height / 2;
+    }
 
     for (const cell of cells) {
         fill(cell.color);
@@ -145,11 +166,16 @@ function draw() {
         fill(0); // Set text color to black
         textSize(12);
         textAlign(CENTER);
-        text(player.name, player.x- cameraX, player.y  - cameraY - player.size - 5); // Adjust offset as needed
+        text(player.name, player.x - cameraX, player.y - cameraY - player.size - 5);
     }
 
     fill(255, 0, 0, 0);
-    rect(width - 220, 10, 200, 200); // Position and size of the leaderboard table
+    rect(
+        width - 220 - cameraX + canvas.width / 2,
+        10 - cameraY + canvas.height / 2,
+        200,
+        200
+    );
 
     fill(0); // Set text color to black
     textSize(16);

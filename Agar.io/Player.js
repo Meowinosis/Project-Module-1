@@ -11,6 +11,10 @@ class Player {
         this.directionY = 0;    // Add directionY property
         this.name = name;
         this.lastPositionUpdateTime = Date.now();
+        this.cameraX = x;
+        this.cameraY = y;
+        this.cameraWidth = size;
+        this.cameraHeight = size;
     }
 }
 

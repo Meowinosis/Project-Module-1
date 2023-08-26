@@ -28,7 +28,7 @@ function getRandomColor() {
 const canvasWidth = 2000;
 const canvasHeight = 2000;
 const initialNumCells =100;
-const speed = 1;
+const speed = 8;
 // Initialize cells when the server starts
 let cells = generateInitialCells(initialNumCells);
 
