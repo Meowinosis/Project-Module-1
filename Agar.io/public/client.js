@@ -15,13 +15,11 @@ let player = {
     color: "",    // Player color
 };
 
-let cameraX = 0;
-let cameraY = 0;
-let gameWidth = 2000;
-let gameHeight = 2000;
+const screenWidth = window.innerWidth;
+const screenHeight = window.innerHeight;
 
 function setup() {
-    canvas = createCanvas(gameWidth, gameHeight);
+    canvas = createCanvas(screenWidth, screenHeight);
     // Listen for initPlayer event from the server
     socket = io(); // Connect to server
     socket.on("connect", () => {
@@ -29,27 +27,14 @@ function setup() {
 
         socket.on("initPlayer", (playerData) => {
             player = playerData; // Initialize the player object
-            player.cameraX = player.x;
-            player.cameraY = player.y;
-            player.cameraWidth = player.size; // Set initial camera width
-            player.cameraHeight = player.size;
-
-            updateCamera(player.x, player.y);
             players.push(playerData); // Store received player data
         });
+
+        socket.emit("screenDimensions", { width: screenWidth, height: screenHeight });
 
         socket.on("updatePlayers", (updatedPlayers) => {
             // Find the player object corresponding to the client's socket ID
             players = updatedPlayers;
-            const currentPlayer = players.find(player => player.id === socket.id);
-
-            if (currentPlayer) {
-                // Update the camera position based on the current player's position
-                updateCamera(currentPlayer.x, currentPlayer.y);
-
-                cameraX = currentPlayer.cameraX - canvas.width / 2;
-                cameraY = currentPlayer.cameraY - canvas.height / 2;
-            }
         });
         socket.on("initCells", (initialCells) => {
             cells = initialCells;
@@ -95,18 +80,11 @@ function setup() {
     });
 }
 
-function handleMouseMoved() {
-    const currentPlayer = players.find(player => player.id === socket.id);
+function handleMouseMoved(event) {
+    const mouseXOnCanvas = event.clientX - canvas.elt.getBoundingClientRect().left;
+    const mouseYOnCanvas = event.clientY - canvas.elt.getBoundingClientRect().top;
 
-    if (currentPlayer) {
-        const targetX = mouseX + cameraX;
-        const targetY = mouseY + cameraY;
-
-        currentPlayer.x = targetX;
-        currentPlayer.y = targetY;
-
-        socket.emit("playerMove", { x: currentPlayer.x, y: currentPlayer.y });
-    }
+    socket.emit("playerMove", { x: mouseXOnCanvas, y: mouseYOnCanvas });
 }
 
 
@@ -129,53 +107,25 @@ function startGame() {
 
 }
 
-function updateCamera(playerX, playerY) {
-    // Update the camera's position based on the player's position
-    cameraX = playerX - canvas.width / 2;
-    cameraY = playerY - canvas.height / 2;
-
-    // Clamp camera position to stay within the game boundaries
-    cameraX = constrain(cameraX, 0, gameWidth - canvas.width);
-    cameraY = constrain(cameraY, 0, gameHeight - canvas.height);
-}
-
 function draw() {
     // Clear the canvas
     background(255);
-    const currentPlayer = players.find(player => player.id === socket.id);
-    if (currentPlayer) {
-        // Update the camera position based on the current player's position
-        currentPlayer.cameraX = currentPlayer.x;
-        currentPlayer.cameraY = currentPlayer.y;
-
-        // Inside the camera position update block
-        cameraX = currentPlayer.cameraX - canvas.width / 2;
-        cameraY = currentPlayer.cameraY - canvas.height / 2;
-    }
 
     for (const cell of cells) {
         fill(cell.color);
         noStroke();
-        ellipse(cell.x - cameraX, cell.y - cameraY, cell.size);
+        ellipse(cell.x, cell.y, cell.size);
     }
 
     for (const player of players) {
         fill(player.color);
         noStroke();
-        ellipse(player.x - cameraX, player.y - cameraY, player.size);
+        ellipse(player.x, player.y, player.size);
         fill(0); // Set text color to black
         textSize(12);
         textAlign(CENTER);
-        text(player.name, player.x - cameraX, player.y - cameraY - player.size - 5);
+        text(player.name, player.x, player.y - player.size - 5);
     }
-
-    fill(255, 0, 0, 0);
-    rect(
-        width - 220 - cameraX + canvas.width / 2,
-        10 - cameraY + canvas.height / 2,
-        200,
-        200
-    );
 
     fill(0); // Set text color to black
     textSize(16);

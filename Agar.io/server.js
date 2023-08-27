@@ -7,15 +7,15 @@ const Cell = require("./Cell"); // Import Cell class
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-
 // Serve static files (HTML, CSS, JS)
 app.use(express.static(__dirname + "/public"));
 
 const players = {}; // Stores player objects
 const maxCellSize = 8;
 const minCellSize = 4;
-const sizeIncreaseRate = 0.5;
-const positionUpdateInterval = 100;
+const sizeIncreaseRate = 0.2;
+const canvasWidth = 1920;
+const canvasHeight = 1920;
 
 function getRandomColor() {
   const letters = "0123456789ABCDEF";
@@ -25,10 +25,9 @@ function getRandomColor() {
   }
   return color;
 }
-const canvasWidth = 2000;
-const canvasHeight = 2000;
-const initialNumCells =100;
-const speed = 8;
+
+const initialNumCells =200;
+const speed = 1;
 // Initialize cells when the server starts
 let cells = generateInitialCells(initialNumCells);
 
@@ -139,8 +138,8 @@ io.on("connection", (socket) => {
 
     const { name } = playerData;
     // Generate random starting position within canvas boundaries
-    const startingX = Math.random() * (canvasWidth - startingPlayerSize);
-    const startingY = Math.random() * (canvasHeight - startingPlayerSize);
+    const startingX = Math.random() * (1200 - startingPlayerSize);
+    const startingY = Math.random() * (1000 - startingPlayerSize);
 
     const player = new Player(
       socket.id,
@@ -171,6 +170,7 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("initCells", cells);
 
     socket.emit("updatePlayers", Object.values(players));
+
 
     socket.on("playerMove", (mousePosition) => {
         const player = players[socket.id];
@@ -207,9 +207,13 @@ io.on("connection", (socket) => {
       clearInterval(socket.movementInterval);
     }
   });
+  socket.on("rejoinGame", () => {
+    // Handle rejoining logic
+    // Create a new player object, emit necessary events, etc.
+  });
 });
 
-const cellGenerationInterval = 2000;
+const cellGenerationInterval = 1000;
 // Trigger cell generation at intervals
 setInterval(createRandomCell, cellGenerationInterval);
 setInterval(() => {
