@@ -53,6 +53,14 @@ function setup() {
             }
         });
 
+        socket.on("removeCell", (cellId) => {
+            // Find the index of the cell with the given cellId
+            const cellIndex = cells.findIndex((cell) => cell.id === cellId);
+            if (cellIndex !== -1) {
+              cells.splice(cellIndex, 1); // Remove the cell from the array
+            }
+          });
+          
         socket.on("leaderBoards", (updatedPlayers) => {
             leaderboardData = updatedPlayers; // Update the leaderboard data
         });

@@ -14,8 +14,9 @@ const players = {}; // Stores player objects
 const maxCellSize = 8;
 const minCellSize = 4;
 const sizeIncreaseRate = 0.2;
-const canvasWidth = 1920;
-const canvasHeight = 1920;
+const canvasWidth = 1600;
+const canvasHeight = 900;
+const maxCellCount = 450;
 
 function getRandomColor() {
   const letters = "0123456789ABCDEF";
@@ -47,6 +48,11 @@ function generateInitialCells(numCells) {
 }
 
 function createRandomCell() {
+  if (cells.length >= maxCellCount) {
+    // Remove the oldest cell to make space for a new one
+    const oldestCell = cells.shift(); // Remove the first cell in the array
+    io.emit("removeCell", oldestCell.id); // Notify clients to remove the cell
+  }
   const cellColor = getRandomColor();
   const cellX = Math.random() * canvasWidth;
   const cellY = Math.random() * canvasHeight;
@@ -138,8 +144,8 @@ io.on("connection", (socket) => {
 
     const { name } = playerData;
     // Generate random starting position within canvas boundaries
-    const startingX = Math.random() * (1200 - startingPlayerSize);
-    const startingY = Math.random() * (1000 - startingPlayerSize);
+    const startingX = Math.random() * (1600 - startingPlayerSize);
+    const startingY = Math.random() * (800 - startingPlayerSize);
 
     const player = new Player(
       socket.id,
@@ -206,10 +212,6 @@ io.on("connection", (socket) => {
     if (socket.movementInterval) {
       clearInterval(socket.movementInterval);
     }
-  });
-  socket.on("rejoinGame", () => {
-    // Handle rejoining logic
-    // Create a new player object, emit necessary events, etc.
   });
 });
 
