@@ -1,4 +1,5 @@
 let canvas;
+const serverURL = "agario-clone.phonnguyen.repl.co";
 let players = [];
 let cells = [];
 let cellPositions = [];
