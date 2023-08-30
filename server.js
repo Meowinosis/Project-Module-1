@@ -19,7 +19,7 @@ const canvasHeight = 900;
 const maxCellCount = 450;
 const maxInterval = 1000; // Maximum interval time
 let minInterval = 100; // Minimum cell generation interval
-let cellGenerationInterval = 700; // Default interval
+let cellGenerationInterval = 200; // Default interval
 
 function getRandomColor() {
   const letters = "0123456789ABCDEF";
