@@ -149,5 +149,24 @@ function draw() {
     }
 }
 
+const dataToSend = {
+    playerPosition: { x: player.x, y: player.y },
+    gameState: { }
+    // Add more relevant data fields as needed
+  };
 
+fetch(`${serverURL}/update-game-state`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(dataToSend)
+  })
+  .then(response => response.json())
+  .then(responseData => {
+    // Process the response from the server
+  })
+  .catch(error => {
+    console.error("Error:", error);
+  });
 
