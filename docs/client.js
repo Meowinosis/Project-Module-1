@@ -75,6 +75,12 @@ function setup() {
             movementInterval = interval;
         });
 
+        socket.on("playerEaten", () => {
+            // Reload the page after a short delay
+            setTimeout(() => {
+                location.reload();
+            }, 4000); // You can adjust the delay (in milliseconds) as needed
+        });
 
         // Show the prompt to enter the player's name
         showNamePrompt();

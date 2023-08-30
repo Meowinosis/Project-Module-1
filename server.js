@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 // Serve static files (HTML, CSS, JS)
-app.use(express.static(__dirname + "/public"));
+app.use(express.static(__dirname + "/docs"));
 
 const players = {}; // Stores player objects
 const maxCellSize = 8;
@@ -17,6 +17,9 @@ const sizeIncreaseRate = 0.2;
 const canvasWidth = 1600;
 const canvasHeight = 900;
 const maxCellCount = 450;
+const maxInterval = 1000; // Maximum interval time
+let minInterval = 100; // Minimum cell generation interval
+let cellGenerationInterval = 700; // Default interval
 
 function getRandomColor() {
   const letters = "0123456789ABCDEF";
@@ -27,7 +30,7 @@ function getRandomColor() {
   return color;
 }
 
-const initialNumCells =200;
+const initialNumCells = 200;
 const speed = 1;
 // Initialize cells when the server starts
 let cells = generateInitialCells(initialNumCells);
@@ -79,6 +82,11 @@ function handlePlayerEating() {
         player.size += 0.3; // Increase player size slightly
         cells.splice(i, 1);
         // Remove the eaten cell
+        // Increase the cell generation interval to compensate for player size increase
+        cellGenerationInterval -= 10; // Adjust this value as needed
+
+        // Make sure the cell generation interval doesn't go below the minimum
+        cellGenerationInterval = Math.max(minInterval, cellGenerationInterval);
         io.emit("cellEaten", cell.id);
       }
     }
@@ -103,6 +111,7 @@ function handlePlayerPlayerCollision() {
             const growthAmount = target.size * sizeIncreaseRate;
             eater.size += growthAmount; // Increase eater size
             delete players[targetId]; // Remove target player
+            io.to(targetId).emit("playerEaten");
           }
         }
       }
@@ -113,25 +122,28 @@ function handlePlayerPlayerCollision() {
 const startingPlayerSize = 30; // Adjust as needed
 
 setInterval(() => {
-    // Update player positions based on target positions
-    for (const player of Object.values(players)) {
-        const dx = player.targetX - player.x;
-        const dy = player.targetY - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+  // Update player positions based on target positions
+  for (const player of Object.values(players)) {
+    const dx = player.targetX - player.x;
+    const dy = player.targetY - player.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > speed) {
-            const moveX = (dx / distance) * speed;
-            const moveY = (dy / distance) * speed;
-            player.x += moveX;
-            player.y += moveY;
-        } else {
-            player.x = player.targetX;
-            player.y = player.targetY;
-        }
+    if (distance > speed) {
+      const moveX = (dx / distance) * speed;
+      const moveY = (dy / distance) * speed;
+      player.x += moveX;
+      player.y += moveY;
+    } else {
+      player.x = player.targetX;
+      player.y = player.targetY;
     }
+  }
 
-    // Broadcast updated player positions to all clients
-    io.emit("updatePlayers", Object.values(players).sort((a, b) => a.size - b.size));
+  // Broadcast updated player positions to all clients
+  io.emit(
+    "updatePlayers",
+    Object.values(players).sort((a, b) => a.size - b.size)
+  );
 }, 1000 / 60);
 // Handle socket connections
 io.on("connection", (socket) => {
@@ -177,15 +189,13 @@ io.on("connection", (socket) => {
 
     socket.emit("updatePlayers", Object.values(players));
 
-
     socket.on("playerMove", (mousePosition) => {
-        const player = players[socket.id];
-        if (player) {
-            player.targetX = mousePosition.x;
-            player.targetY = mousePosition.y;
-        }
+      const player = players[socket.id];
+      if (player) {
+        player.targetX = mousePosition.x;
+        player.targetY = mousePosition.y;
+      }
     });
-    
   });
 
   setInterval(() => {
@@ -215,13 +225,12 @@ io.on("connection", (socket) => {
   });
 });
 
-const cellGenerationInterval = 1000;
 // Trigger cell generation at intervals
-setInterval(createRandomCell, cellGenerationInterval);
 setInterval(() => {
+  createRandomCell();
   handlePlayerEating();
   handlePlayerPlayerCollision();
-}, 1000 / 10);
+}, cellGenerationInterval);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
